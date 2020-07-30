@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
@@ -13,19 +14,21 @@ device = torch.device(dev)
 class Model(torch.nn.Module):
     def __init__(self):
         super(Model, self).__init__()
-        self.l1 = torch.nn.Linear(784, 520)
-        self.l2 = torch.nn.Linear(520, 320)
-        self.l3 = torch.nn.Linear(320, 240)
-        self.l4 = torch.nn.Linear(240, 120)
-        self.l5 = torch.nn.Linear(120, 10)
+        # 28 * 28 = 724
+        # 24 * 24 * 10
+        # 12 *
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.mp = nn.MaxPool2d(2)
+        self.fc = nn.Linear(320, 10)
 
     def forward(self, x):
-        x = x.view(-1, 784)
-        x = F.relu(self.l1(x))
-        x = F.relu(self.l2(x))
-        x = F.relu(self.l3(x))
-        x = F.relu(self.l4(x))
-        return self.l5(x)
+        in_size = x.size(0)
+        x = F.relu(self.mp(self.conv1(x)))
+        x = F.relu(self.mp(self.conv2(x)))
+        x = x.view(in_size, -1)
+        x = self.fc(x)
+        return F.log_softmax(x)
 
 BATCH_SIZE = 64
 train_dataset = datasets.MNIST(root="./data/",
